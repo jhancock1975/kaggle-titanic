@@ -1,1 +1,5 @@
+# ignore contest data
 data/
+
+# ignore pycharm project configuration files
+.idea/
