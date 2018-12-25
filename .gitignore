@@ -3,3 +3,6 @@ data/
 
 # ignore pycharm project configuration files
 .idea/
+
+# ignore python cache
+__pycache__/
