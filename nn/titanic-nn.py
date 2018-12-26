@@ -18,10 +18,10 @@ class TitanicNN(object):
         self.model.add(Dropout(0.5))
         self.model.add(Dense(16, activation='relu'))
         self.model.add(Dropout(0.5))
-        self.model.add(Dense(2, activation='softmax'))
+        self.model.add(Dense(1, activation='softmax'))
 
         sgd = SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
-        self.model.compile(loss='categorical_crossentropy',
+        self.model.compile(loss='binary_crossentropy',
                       optimizer=sgd,
                       metrics=['accuracy'])
         pass
@@ -38,8 +38,8 @@ class TitanicNN(object):
         logger.debug("starting data cleaning")
 
         # split the label column off
-        y = to_categorical(df.Survived)
-        # y = df.Survived
+        # y = to_categorical(df.Survived)
+        y = df.Survived
         df.drop(['Survived'], inplace=True, axis=1)
 
         # drop columns we are not going to use, and fill NaN's with
