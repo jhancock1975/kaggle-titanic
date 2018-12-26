@@ -1,28 +1,29 @@
 import pandas as pd
 from keras.models import Sequential
-from keras.layers import Dense, Activation, Dropout
+from keras.layers import Dense,  Dropout
 from keras.optimizers import SGD
+from keras.utils import to_categorical
 import logging
 import argparse
+from sklearn.preprocessing import LabelEncoder
+import numpy as np
 
 class TitanicNN(object):
 
     def __init__(self):
         self.model = Sequential()
-        self.model.add(Dense(32, activation='relu', input_dim=7))
+        self.model.add(Dense(32, activation='relu', input_dim=8))
         self.model.add(Dropout(0.5))
         self.model.add(Dense(64, activation='relu'))
         self.model.add(Dropout(0.5))
         self.model.add(Dense(16, activation='relu'))
         self.model.add(Dropout(0.5))
-        self.model.add(Dense(1, activation='softmax'))
+        self.model.add(Dense(2, activation='softmax'))
 
         sgd = SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
         self.model.compile(loss='categorical_crossentropy',
                       optimizer=sgd,
                       metrics=['accuracy'])
-
-
         pass
 
     def __data_cleaning(self, df):
@@ -34,16 +35,51 @@ class TitanicNN(object):
         :param df: dataframe to be cleaned
         :return: dataframe altered as in the method description above
         """
-        df = df[['Pclass', 'Sex', 'Age', 'SibSp', 'Parch', 'Fare', 'Cabin', 'Survived']]
+        logger.debug("starting data cleaning")
+
+        # split the label column off
+        y = to_categorical(df.Survived)
+        # y = df.Survived
+        df.drop(['Survived'], inplace=True, axis=1)
+
+        # drop columns we are not going to use, and fill NaN's with
+        # most frequently occuring value for columns we retain
         for col_name in df.columns:
-            df[col_name].fillna(df[col_name].mode()[0], inplace=True)
-        logger.debug("\n%s" % df.describe(include='all'))
-        return df
+            if col_name not in['Pclass', 'Sex', 'Age', 'SibSp', 'Parch', 'Fare', 'Cabin', 'Survived']:
+                df.drop([col_name], inplace=True, axis=1)
+            else:
+                df[col_name].fillna(df[col_name].mode()[0], inplace=True)
+
+        logger.debug("retained column statistics\n%s" % df.describe(include='all'))
+        logger.debug("column datatypes:\n%s" % df.dtypes)
+
+        # one-hot encode sex
+        df = df.join(pd.get_dummies(df['Sex']))
+
+        # drop encoded columns
+        df.drop(['Sex'], axis=1, inplace=True)
+
+        # label encode cabin
+        le = LabelEncoder()
+        df['Cabin'] = le.fit_transform(df['Cabin'])
+
+        logger.debug('column names after encoding categorical values:\n%s' % df.columns)
+        logger.debug('sample of transformed data:\n%s' % df.sample(n=5))
+
+        # scale dataframe
+        return (df - df.mean()) / (df.max() - df.min()), y
 
     def train(self, train_csv_name):
-        df = self.__data_cleaning(pd.read_csv(train_csv_name))
-        X = df
+        x, y = self.__data_cleaning(pd.read_csv(train_csv_name))
 
+        logger.debug('sample of features data frame after cleaning completed:\n%s' % x.sample(n=5))
+        logger.debug('sample of labels:\n%s' % y[np.random.randint(y.shape[0], size=5)])
+
+        logger.debug('starting model fitting')
+        self.model.fit(x, y, epochs=20, batch_size=20)
+
+    def predict(self, test_csv_name):
+        pass
 
 # parse command line arguments
 # this program expects the user
