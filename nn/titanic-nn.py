@@ -14,14 +14,14 @@ class TitanicNN(object):
 
     def __init__(self):
         self.model = Sequential()
-        self.model.add(Dense(16, activation='relu', input_dim=8))
+        self.model.add(Dense(64, activation='relu', input_dim=8))
         self.model.add(Dropout(0.5))
-        self.model.add(Dense(32, activation='relu'))
+        self.model.add(Dense(8, activation='relu'))
         self.model.add(Dense(1, activation='sigmoid'))
 
         sgd = SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
         self.model.compile(loss='binary_crossentropy',
-                      optimizer=sgd,
+                      optimizer='adam',
                       metrics=['accuracy'])
         pass
 
@@ -80,12 +80,12 @@ class TitanicNN(object):
         """
         x, y = self.__data_cleaning(pd.read_csv(train_csv_name))
         x_train, x_val, y_train, y_val = train_test_split(
-            x, y, test_size=0.33, random_state=constant.RANDOM_STATE)
+            x, y, test_size=0.1, random_state=constant.RANDOM_STATE)
         logger.debug('sample of features data frame after cleaning completed:\n%s' % x.sample(n=5))
         logger.debug('sample of labels:\n%s' % y[np.random.randint(y.shape[0], size=5)])
 
         logger.debug('starting model fitting')
-        self.model.fit(x_train, y_train, epochs=20, batch_size=100)
+        self.model.fit(x_train, y_train, epochs=100, batch_size=50)
         y_hat = self.model.predict(x_val)
         logger.debug('prediction accuracy on validation data: %f' %
                      accuracy_score(y_val, np.rint(y_hat)))
@@ -110,7 +110,6 @@ class TitanicNN(object):
         logger.debug('predictions shape:')
         logger.debug(predictions.shape)
 
-        df = pd.DataFrame([passenger_id])
         df = pd.concat([passenger_id, predictions], axis=1 )
         df.columns=['PassengerId', 'Survived']
         df.to_csv('../data/submission.csv', index=None)
